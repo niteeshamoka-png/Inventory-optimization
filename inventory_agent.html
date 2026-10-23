@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StockSense AI – Inventory Intelligence Agent</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f6fb;--card:#fff;--tx:#0f172a;--mut:#64748b;--bd:#e2e8f0;--ac:#6366f1;--ok:#10b981;--warn:#f59e0b;--bad:#ef4444;--blue:#0ea5e9;--hd:linear-gradient(120deg,#312e81,#6366f1 60%,#0ea5e9);color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1020;--card:#141b30;--tx:#e6eaf5;--mut:#94a3b8;--bd:#25304d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b1020;--card:#141b30;--tx:#e6eaf5;--mut:#94a3b8;--bd:#25304d;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--hd);color:#fff;padding:18px 20px}
+header h1{margin:0;font-size:20px}header p{margin:2px 0 0;opacity:.85;font-size:13px}
+.wrap{max-width:1200px;margin:0 auto;padding:14px;display:grid;gap:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px}
+.k .l{color:var(--mut);font-size:12px}.k .v{font-size:22px;font-weight:700;margin-top:2px}.k .s{font-size:11px;color:var(--mut)}
+.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+h2{margin:0 0 10px;font-size:15px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.ctl label{font-size:12px;color:var(--mut);display:flex;justify-content:space-between}.ctl b{color:var(--tx)}
+input[type=range]{width:100%;accent-color:var(--ac)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border:1px solid var(--bd);background:transparent;color:var(--tx);padding:5px 11px;border-radius:99px;font-size:12px;cursor:pointer}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px}
+th{text-align:left;color:var(--mut);font-weight:600;padding:6px;border-bottom:1px solid var(--bd);white-space:nowrap}
+td{padding:7px 6px;border-bottom:1px solid var(--bd);white-space:nowrap}tr.r{cursor:pointer}tr.r:hover,tr.sel{background:color-mix(in srgb,var(--ac) 10%,transparent)}
+.b{padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;color:#fff}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer}.btn.g{background:var(--ok)}.btn:disabled{opacity:.5}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:6px 0}
+.leg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mut)}
+.leg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+#log{height:300px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}
+.m{padding:9px 11px;border-radius:12px;max-width:94%;font-size:13px}
+.m.u{align-self:flex-end;background:var(--ac);color:#fff}.m.a{background:color-mix(in srgb,var(--ac) 9%,var(--card));border:1px solid var(--bd)}
+.tr{font-size:11px;color:var(--mut);margin-bottom:5px}.m ul{margin:4px 0 0;padding-left:16px}
+.ask{display:flex;gap:6px;margin-top:10px}.ask input{flex:1;padding:9px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:14px}
+.q{margin-top:8px}svg text{fill:var(--mut);font-size:9px}
+.ins{font-size:12.5px;color:var(--mut);margin-top:6px}
+</style></head><body>
+<header><h1>📦 StockSense AI — Inventory Intelligence Agent</h1><p>Demand · Seasonality · Lead times → stockout &amp; overstock decisions (simulated retailer data, as of 23 Oct 2026)</p></header>
+<div class="wrap">
+<div class="kpis" id="kpis"></div>
+<div class="card"><h2>⚙️ Agent controls (what-if)</h2><div class="ctl">
+<div><label>Target service level <b id="slv"></b></label><input type="range" id="sl" min="90" max="99.5" step=".5" value="95"></div>
+<div><label>Supplier delay shock <b id="dlv"></b></label><input type="range" id="dl" min="0" max="60" step="5" value="0"></div>
+<div><label>Overstock threshold (days of cover) <b id="ovv"></b></label><input type="range" id="ov" min="45" max="120" step="5" value="75"></div></div></div>
+<div class="grid">
+<div class="card"><h2>🧮 SKU decision board</h2><div class="chips" id="chips"></div>
+<div class="bar" id="sbar"></div><div class="leg" id="leg"></div>
+<div class="tw q"><table><thead><tr><th>SKU</th><th>Category</th><th>Stock</th><th>Cover</th><th>Lead</th><th>ROP</th><th>Status</th><th>Agent action</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+<div style="display:grid;gap:14px;align-content:start">
+<div class="card"><h2>🤖 Ask the agent</h2><div id="log"></div>
+<div class="chips q" id="qs"></div>
+<div class="ask"><input id="in" placeholder="e.g. what should I order this week?"><button class="btn" id="go">Ask</button></div></div>
+<div class="card"><h2 id="dt">📈 Demand &amp; forecast</h2><svg id="ch" viewBox="0 0 360 170" width="100%"></svg><div class="ins" id="di"></div></div>
+</div></div></div>
+<script>
+const R=(s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296})(11);
+const P={w:[1.5,1.3,.9,.7,.6,.5,.5,.6,.8,1.1,1.5,1.7],s:[.6,.6,.8,1.1,1.4,1.7,1.8,1.6,1.1,.8,.6,.6],f:[.8,.7,.8,.8,.9,.9,.9,1,1,1.3,1.8,1.9],n:[1,.95,1,1,1,1,1,1,1,1,1.05,1.1]};
+const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const D=[['Puffer Jacket','Outerwear','w',48,129,28,420,.2,6],['Wool Sweater','Outerwear','w',22,59,21,600,.18,150],['Thermal Gloves','Outerwear','w',6,19,14,900,.2,35],['Ceiling Fan','Home','s',34,89,35,260,.25,160],['Cold Brew Pack','Beverages','s',7,16,10,1400,.22,9],['Sparkling Water 12pk','Beverages','s',4,9,7,2600,.15,30],['Sunscreen SPF50','Personal','s',5,14,18,1100,.2,170],['Smart Speaker','Electronics','f',28,69,42,380,.3,7],['4K Smart TV 43"','Electronics','f',210,399,45,120,.28,40],['Wireless Earbuds','Electronics','f',18,59,38,720,.3,4],['Gaming Console Bundle','Electronics','f',320,499,50,70,.35,3],['Phone Case','Electronics','f',2,12,25,1800,.15,185],['Basmati Rice 5kg','Grocery','n',6,12,12,1900,.08,28],['Olive Oil 1L','Grocery','n',5,11,20,1200,.12,45],['Cereal Box','Grocery','n',2,5,9,2800,.1,22],['Instant Noodles','Grocery','n',.5,1.5,14,6000,.1,130],['Laundry Detergent','Household','n',5,12,15,1500,.1,40],['Paper Towels 6pk','Household','n',4,10,10,2100,.09,12],['Yoga Mat','Fitness','n',8,25,30,500,.22,125],['Protein Powder','Fitness','n',16,39,24,640,.18,33],['Scented Candle','Home','f',3,14,16,900,.25,60],['Air Fryer','Home','f',32,79,40,330,.27,18],['LED Desk Lamp','Home','n',9,24,28,420,.15,50],['Rain Jacket','Outerwear','n',20,55,26,380,.2,95]];
+const HM=[10,11,0,1,2,3,4,5,6,7,8,9];
+const K=D.map(([name,cat,p,cost,price,lt,base,vol,cov])=>{const se=P[p];const h=HM.map(m=>Math.round(base*se[m]*(1+vol*(R()-.5)*2)));
+const lv=h.reduce((a,x,i)=>a+x/se[HM[i]],0)/12;const cv=Math.sqrt(h.reduce((a,x,i)=>a+(x/se[HM[i]]/lv-1)**2,0)/12);
+return{name,cat,p,cost,price,lt,h,lv,cv,se,stock:Math.round(cov*lv*se[10]/30),oo:0}});
+const zf=p=>{p=p/100;const t=Math.sqrt(-2*Math.log(1-p));return t-(2.515517+.802853*t+.010328*t*t)/(1+1.432788*t+.189269*t*t+.001308*t**3)};
+const ST={r:['Stockout risk','var(--bad)'],o:['Reorder now','var(--warn)'],h:['Healthy','var(--ok)'],x:['Overstock','var(--blue)']};
+let flt='all',sel=0,appr={},$=n=>'$'+Math.round(n).toLocaleString(),C={};
+const sl=()=>+document.getElementById('sl').value,dl=()=>+document.getElementById('dl').value,ov=()=>+document.getElementById('ov').value;
+function calc(){const z=zf(sl()),d=dl(),o=ov();K.forEach(s=>{s.f=[10,11].map(m=>s.lv*s.se[m]);s.dd=s.f[0]/30;s.le=s.lt*(1+d/100);
+s.ss=z*s.dd*s.cv*Math.sqrt(s.le);s.rop=s.dd*s.le+s.ss;s.cover=s.stock/s.dd;s.pos=s.stock+s.oo;
+s.st=s.cover<s.le?'r':s.pos<=s.rop?'o':s.cover>o?'x':'h';
+s.qty=s.st=='x'?0:Math.max(0,Math.ceil(s.dd*(s.le+14)+s.ss-s.pos));
+s.ex=s.st=='x'?Math.max(0,s.stock-s.dd*60):0;s.exv=s.ex*s.cost;s.risk=s.st=='r'?s.dd*(s.price-s.cost)*Math.max(0,s.le-s.cover):0;
+s.act=s.st=='x'?(s.cover>150?'Markdown 25% + pause POs':'Markdown 10–15%, hold POs'):s.qty?`Order ${s.qty.toLocaleString()} (${$(s.qty*s.cost)})`:'Monitor'})}
+function kpis(){const c=t=>K.filter(s=>s.st==t).length,sum=f=>K.reduce((a,s)=>a+f(s),0);
+const ap=Object.keys(appr).reduce((a,i)=>a+appr[i],0);
+const T=[['Stockout-risk SKUs',c('r'),'margin at risk '+$(sum(s=>s.risk))],['Overstock SKUs',c('x'),'excess capital '+$(sum(s=>s.exv))],['Inventory value',$(sum(s=>s.stock*s.cost)),K.length+' SKUs'],['Recommended POs',$(sum(s=>s.qty*s.cost)),sum(s=>s.qty>0)+' orders'],['Approved POs',$(ap),Object.keys(appr).length+' approved']];
+document.getElementById('kpis').innerHTML=T.map(t=>`<div class="card k"><div class="l">${t[0]}</div><div class="v">${t[1]}</div><div class="s">${t[2]}</div></div>`).join('')}
+function board(){const n={r:0,o:0,h:0,x:0};K.forEach(s=>n[s.st]++);
+document.getElementById('sbar').innerHTML=Object.keys(ST).map(k=>`<div style="flex:${n[k]};background:${ST[k][1]}"></div>`).join('');
+document.getElementById('leg').innerHTML=Object.keys(ST).map(k=>`<span><i style="background:${ST[k][1]}"></i>${ST[k][0]} ${n[k]}</span>`).join('');
+document.getElementById('chips').innerHTML=[['all','All']].concat(Object.keys(ST).map(k=>[k,ST[k][0]])).map(([k,l])=>`<button class="chip ${flt==k?'on':''}" data-f="${k}">${l}</button>`).join('');
+const ord={r:0,o:1,x:2,h:3};
+document.getElementById('tb').innerHTML=K.map((s,i)=>[s,i]).filter(([s])=>flt=='all'||s.st==flt).sort((a,b)=>ord[a[0].st]-ord[b[0].st]).map(([s,i])=>`<tr class="r ${i==sel?'sel':''}" data-i="${i}"><td><b>${s.name}</b></td><td>${s.cat}</td><td>${s.stock.toLocaleString()}</td><td>${Math.round(s.cover)}d</td><td>${Math.round(s.le)}d</td><td>${Math.round(s.rop)}</td><td><span class="b" style="background:${ST[s.st][1]}">${ST[s.st][0]}</span></td><td>${s.qty?`<button class="btn ${appr[i]?'g':''}" data-a="${i}">${appr[i]?'✓ Approved':s.act}</button>`:s.act}</td></tr>`).join('')}
+function chart(){const s=K[sel],v=s.h.concat(s.f.map(Math.round)),mx=Math.max(...v)*1.1,lab=HM.concat([10,11]);
+document.getElementById('dt').textContent='📈 '+s.name+' — demand & forecast';
+let g='';v.forEach((x,i)=>{const h=x/mx*120,w=17,xx=12+i*24.5,f=i>11;g+=`<rect x="${xx}" y="${135-h}" width="${w}" height="${h}" rx="3" fill="${f?'var(--warn)':'var(--ac)'}" opacity="${f?.85:.9}"/><text x="${xx+w/2}" y="150" text-anchor="middle">${MN[lab[i]]}</text><text x="${xx+w/2}" y="${130-h}" text-anchor="middle">${x>=1000?(x/1000).toFixed(1)+'k':x}</text>`});
+const sy=135-Math.min(s.stock/mx*120/ (1),120);
+document.getElementById('ch').innerHTML=g+`<text x="12" y="12">Monthly units (purple = history, amber = forecast)</text>`;
+document.getElementById('di').innerHTML=`Daily demand <b>${s.dd.toFixed(1)}</b> · σ-CV ${(s.cv*100).toFixed(0)}% · safety stock <b>${Math.round(s.ss)}</b> · ROP <b>${Math.round(s.rop)}</b> · seasonal index next month <b>${s.se[10].toFixed(2)}×</b> · lead time <b>${Math.round(s.le)}d</b> vs cover <b>${Math.round(s.cover)}d</b>.`}
+function paint(){calc();kpis();board();chart();document.getElementById('slv').textContent=sl()+'% (z='+zf(sl()).toFixed(2)+')';document.getElementById('dlv').textContent='+'+dl()+'%';document.getElementById('ovv').textContent=ov()+'d'}
+const log=document.getElementById('log');
+function say(h,u,tr){const d=document.createElement('div');d.className='m '+(u?'u':'a');d.innerHTML=(tr?`<div class="tr">🔎 ${tr}</div>`:'')+h;log.appendChild(d);log.scrollTop=1e9}
+const L=a=>'<ul>'+a.map(x=>'<li>'+x+'</li>').join('')+'</ul>';
+function agent(q){const l=q.toLowerCase();const hit=K.findIndex(s=>l.includes(s.name.toLowerCase().split(' ')[0])&&s.name.toLowerCase().split(' ')[0].length>3);
+const r=K.filter(s=>s.st=='r'),x=K.filter(s=>s.st=='x'),o=K.filter(s=>s.qty>0);
+if(hit>=0){const s=K[hit];sel=hit;board();chart();return[`<b>${s.name}</b> is <b style="color:${ST[s.st][1]}">${ST[s.st][0]}</b>: ${Math.round(s.cover)} days of cover against a ${Math.round(s.le)}-day lead time, reorder point ${Math.round(s.rop)} vs ${s.pos.toLocaleString()} on hand/on order. Next-month seasonal index is ${s.se[10].toFixed(2)}×. Recommendation: <b>${s.act}</b>.`,'Pulled SKU history → rebuilt forecast → compared cover vs lead time']}
+if(/stockout|risk|short|run out/.test(l))return[`${r.length} SKUs will run out <b>before a new order can arrive</b>:`+L(r.sort((a,b)=>b.risk-a.risk).map(s=>`<b>${s.name}</b>: ${Math.round(s.cover)}d cover vs ${Math.round(s.le)}d lead → ~${$(s.risk)} margin at risk`))+'Tip: expedite or split orders for the top two.','Scanned cover vs supplier lead time → ranked by margin at risk'];
+if(/excess|over|slow|dead|markdown/.test(l))return[`${x.length} SKUs hold <b>${$(x.reduce((a,s)=>a+s.exv,0))}</b> of excess capital (above 60 days of demand):`+L(x.sort((a,b)=>b.exv-a.exv).slice(0,6).map(s=>`<b>${s.name}</b>: ${Math.round(s.cover)}d cover, ${$(s.exv)} excess → ${s.act}`)),'Compared cover to threshold → sized excess → matched markdown policy'];
+if(/order|po\b|buy|reorder|purchase/.test(l)){const t=o.reduce((a,s)=>a+s.qty*s.cost,0);return[`Recommended purchase orders (${o.length}) worth <b>${$(t)}</b>:`+L(o.slice(0,7).map(s=>`${s.name}: ${s.qty.toLocaleString()} units (${$(s.qty*s.cost)})`))+'<button class="btn" data-all="1">Approve all POs</button>','Computed order-up-to level = demand × (lead time + 14d review) + safety stock − inventory position']}
+if(/supplier|lead|delay/.test(l)){const t=[...K].sort((a,b)=>b.lt-a.lt).slice(0,4);return[`Supplier delays hurt long-lead items most. Longest lead times:`+L(t.map(s=>`${s.name}: ${s.lt}d (${ST[s.st][0]})`))+`Drag the <b>Supplier delay</b> slider to see SKUs flip into risk (currently +${dl()}%). Consider dual-sourcing the top two.`,'Reviewed lead-time exposure → linked to stock cover']}
+if(/season|forecast|peak|winter|festive|demand/.test(l)){const t=[...K].sort((a,b)=>b.se[10]-a.se[10]).slice(0,5);return['Strongest seasonal uplift in November:'+L(t.map(s=>`${s.name}: ${s.se[10].toFixed(1)}× baseline (${Math.round(s.f[0]).toLocaleString()} units)`))+'Winter and festive electronics are the ones to pre-build now.','Decomposed history into level × seasonal index → projected 2 months']}
+return[`<b>Weekly plan:</b>`+L([`Expedite/order ${r.length} stockout-risk SKUs first`,`Place ${o.length} POs totalling ${$(o.reduce((a,s)=>a+s.qty*s.cost,0))}`,`Mark down ${x.length} overstock SKUs to free ${$(x.reduce((a,s)=>a+s.exv,0))}`,`Pre-build seasonal stock for winter and festive lines`])+'Ask me about a SKU, suppliers, seasonality or POs.','Combined risk, overstock and PO analyses into one action plan']}
+function ask(q){if(!q.trim())return;say(q,1);const [h,t]=agent(q);setTimeout(()=>say(h,0,t),450)}
+document.addEventListener('click',e=>{const t=e.target;
+if(t.dataset.f){flt=t.dataset.f;board()}
+else if(t.dataset.a){const i=t.dataset.a;if(appr[i])delete appr[i];else appr[i]=K[i].qty*K[i].cost;kpis();board()}
+else if(t.dataset.all){K.forEach((s,i)=>{if(s.qty)appr[i]=s.qty*s.cost});kpis();board();say('✅ All recommended POs approved and queued for suppliers.')}
+else if(t.dataset.q)ask(t.dataset.q);
+else{const r=t.closest('tr.r');if(r){sel=+r.dataset.i;board();chart()}}});
+['sl','dl','ov'].forEach(i=>document.getElementById(i).oninput=paint);
+document.getElementById('go').onclick=()=>{const i=document.getElementById('in');ask(i.value);i.value=''};
+document.getElementById('in').onkeydown=e=>{if(e.key=='Enter')document.getElementById('go').click()};
+document.getElementById('qs').innerHTML=['Stockout risks','Overstock','What to order?','Supplier delays','Seasonal demand','Weekly plan'].map(q=>`<button class="chip" data-q="${q}">${q}</button>`).join('');
+paint();say('Hi, I’m StockSense. I forecast demand with seasonality, compare cover against supplier lead time, and recommend orders or markdowns. Try a quick prompt or move the sliders.',0,'Agent ready · 24 SKUs loaded');
+</script></body></html>
